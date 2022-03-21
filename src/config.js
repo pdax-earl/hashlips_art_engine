@@ -104,6 +104,8 @@ const preview_gif = {
   imageName: "preview.gif",
 };
 
+const DNA_DELIMITER = "-";
+
 module.exports = {
   format,
   baseUri,
@@ -123,4 +125,5 @@ module.exports = {
   solanaMetadata,
   gif,
   preview_gif,
+  DNA_DELIMITER,
 };

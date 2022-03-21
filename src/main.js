@@ -4,9 +4,14 @@ const fs = require("fs");
 const {
   Canvas,
   CanvasRenderingContext2d,
+  CanvasRenderingContext2dInit,
   Image,
   SetSource
 } = require(`${basePath}/node_modules/canvas/build/Release/canvas.node`);
+const { DOMMatrix } = require(`${basePath}/node_modules/canvas/lib/DOMMatrix.js`);
+const parseFont = require(`${basePath}/node_modules/canvas/lib/parse-font.js`);
+CanvasRenderingContext2dInit(DOMMatrix, parseFont);
+
 const sha1 = require(`${basePath}/node_modules/sha1`);
 const buildDir = `${basePath}/build`;
 const layersDir = `${basePath}/layers`;
@@ -36,13 +41,17 @@ let {
   background,
   text,
   gif,
+  DNA_DELIMITER,
 } = config;
 
 let loadedImages = {};
 var metadataList = [];
 var attributesList = [];
 var dnaList = new Set();
-const DNA_DELIMITER = "-";
+
+if (DNA_DELIMITER == undefined) {
+  DNA_DELIMITER = "-";
+}
 
 let HashlipsGiffer;
 
@@ -101,7 +110,7 @@ const getElements = (path, name) => {
         process.exit();
       }
 
-      if (!(`${name}/${i}` in loadedImages)) {
+      if (!text.only && !(`${name}/${i}` in loadedImages)) {
         const loadedImage = new Image();
         SetSource.call(loadedImage, `${layersDir}/${name}/${i}`);
 
@@ -221,14 +230,13 @@ const addAttributes = (_element) => {
   });
 };
 
-const drawElement = (ctx, _renderObject) => {
-  ctx.drawImage(
-    _renderObject,
-    0,
-    0,
-    format.width,
-    format.height
-  );
+const addText = (ctx, _sig, x, y, size) => {
+  ctx.fillStyle = text.color;
+  ctx.font = `${text.weight} ${size}pt ${text.family}`;
+console.log(_sig);
+  ctx.textBaseline = text.baseline;
+  ctx.textAlign = text.align;
+  ctx.fillText(_sig, x, y);
 };
 
 const drawElements = (elements, _editionCount) => {
@@ -239,7 +247,7 @@ const drawElements = (elements, _editionCount) => {
 
     let hashlipsGiffer;
     if (gif.export) {
-        hashlipsGiffer = new HashlipsGiffer(
+      hashlipsGiffer = new HashlipsGiffer(
         canvas,
         ctx,
         `${buildDir}/gifs/${_editionCount}.gif`,
@@ -254,8 +262,22 @@ const drawElements = (elements, _editionCount) => {
       drawBackground(ctx);
     }
 
-    elements.forEach(layer => {
-      drawElement(ctx, loadedImages[layer]);
+    elements.forEach((layer, _index) => {
+      text.only
+        ? addText(
+            ctx,
+            cleanName(layer),
+            text.xGap,
+            text.yGap * (_index + 1),
+            text.size
+          )
+        : ctx.drawImage(
+            loadedImages[layer],
+            0,
+            0,
+            format.width,
+            format.height
+          );
 
       if (gif.export) {
         hashlipsGiffer.add();
@@ -401,12 +423,12 @@ const startCreating = () => {
     });
   }
 
-  let offset = NETWORK.sol ? 1 : 0;
+  let offset = network == NETWORK.sol ? 0 : 1;
 
   for (layerconfiguration of layerConfigurations) {
     const layers = layersSetup(layerconfiguration.layersOrder);
 
-    if (!NETWORK.sol && layerconfiguration.startEditionFrom) {
+    if (network != NETWORK.sol && layerconfiguration.startEditionFrom) {
       offset = layerconfiguration.startEditionFrom;
     }
     const startFrom = offset;
