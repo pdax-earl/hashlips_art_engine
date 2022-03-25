@@ -1,0 +1,49 @@
+name: Bug Report
+description: Report that something isn't working.
+labels: bug
+
+body:
+  - type: checkboxes
+    attributes:
+      label: Checklist
+      description: Please go through this before opening an issue
+      options:
+        - label: I have read [COMMON_ISSUES.md](https://github.com/HashLips/hashlips_art_engine/blob/COMMON_ISSUES.md)
+          required: true
+        - label: I have [searched existing issues](https://github.com/HashLips/hashlips_art_engine/issues?q=is%3Aissue)
+          required: true
+  - type: markdown
+    attributes:
+      value: |
+        When pasting errors/code, paste them within triple-backticks, i.e:
+        \`\`\`js
+        error
+        \`\`\`
+  - type: textarea
+    attributes:
+      label: Description
+      description: Describe the issue that you're seeing.
+      placeholder: Paste **full** errors here, if any.
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+      description: Clear steps describing how to reproduce the issue.
+  - type: textarea
+    attributes:
+      label: Expected result
+      description: What should happen?
+  - type: textarea
+    attributes:
+      label: Actual result
+      description: What happened?
+  - type: markdown
+    attributes:
+      value: ### Environment
+  - type: input
+    attributes:
+      description: OS Version
+      placeholder: "`uname -a` on unix, `systeminfo` on windows"
+  - type: input
+    attributes:
+      description: Node.js version
+      placeholder: "`node -v`"

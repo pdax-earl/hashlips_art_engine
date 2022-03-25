@@ -124,21 +124,48 @@ const layerConfigurations = [
 ];
 ```
 
-Update your `format` size, ie the outputted image size, and the `growEditionSizeTo` on each `layerConfigurations` object, which is the amount of variation outputted.
+Update your `format` size, ie the outputted image size, and the
+`growEditionSizeTo` on each `layerConfigurations` object, which is
+the amount of variation outputted.
 
-You can start the count from any number with `startEditionFrom`. This won't work with sol, as it has to start from 0.
+You can set resolution (ppi) in the `format` object (`resolution: 96,`).
 
-You can mix up the `layerConfigurations` order on how the images are saved by setting the variable `shuffleLayerConfigurations` in the `config.js` file to true. It is false by default and will save all images in numerical order.
+If you want your edition numbers to be hex and/or padded, you can set
+`hexEdition: true,` and `padEdition: 64` respectively.
 
-If you want to have logs to debug and see what is happening when you generate images you can set the variable `debugLogs` in the `config.js` file to true. It is false by default, so you will only see general logs.
+You can start the count from any number with `startEditionFrom`. This
+won't work with sol, as it has to start from 0.
 
-If you want to play around with different blending modes, you can add a `blend: MODE.colorBurn` field to the layersOrder `options` object.
+You can mix up the `layerConfigurations` order on how the images are
+saved by setting the variable `shuffleLayerConfigurations` in the
+`config.js` file to true. It is false by default and will save all
+images in numerical order.
 
-If you need a layers to have a different opacity then you can add the `opacity: 0.7` field to the layersOrder `options` object as well.
+If you want to have logs to debug and see what is happening when you
+generate images you can set the variable `debugLogs` in the `config.js`
+file to true. It is false by default, so you will only see general logs.
 
-If you want to have a layer _ignored_ in the DNA uniqueness check, you can set `bypassDNA: true` in the `options` object. This has the effect of making sure the rest of the traits are unique while not considering the `Background` Layers as traits, for example. The layers _are_ included in the final image.
+## Options
 
-To use a different metadata attribute name you can add the `displayName: "Awesome Eye Color"` to the `options` object. All options are optional and can be addes on the same layer if you want to.
+If you want to play around with different blending modes, you can add
+a `blend: MODE.colorBurn` field to the layersOrder `options` object.
+
+If you need a layers to have a different opacity then you can add the
+`opacity: 0.7` field to the layersOrder `options` object as well.
+
+If you want to have a layer _ignored_ in the DNA uniqueness check, you
+can set `bypassDNA: true` in the `options` object. This has the effect
+of making sure the rest of the traits are unique while not considering
+the `Background` Layers as traits, for example. The layers _are_ included
+in the final image.
+
+To use a different metadata attribute name you can add the
+`displayName: "Awesome Eye Color"` to the `options` object. All options
+are optional and can be addes on the same layer if you want to.
+
+If you want to control where a layer is placed within the image, you can
+add a `posX: 123`, `posY: 321`, `width: 456` and/or `height: 654` to the
+layersOrder `options` object (all values are in pixels).
 
 Here is an example on how you can play around with both filter fields:
 
@@ -162,7 +189,15 @@ const layerConfigurations = [
           displayName: "Awesome Eye Color",
         },
       },
-      { name: "Iris" },
+      {
+        name: "Iris",
+        options: {
+           posX: 96,
+           posY: 96,
+           width: 384,
+           height: 384,
+        },
+      },
       { name: "Shine" },
       { name: "Bottom lid", options: { blend: MODE.overlay, opacity: 0.7 } },
       { name: "Top lid" },

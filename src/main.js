@@ -45,6 +45,7 @@ let {
 } = config;
 
 let loadedImages = {};
+let layerConfigs = {};
 var metadataList = [];
 var attributesList = [];
 var dnaList = new Set();
@@ -97,10 +98,12 @@ const getElements = (path, name) => {
      process.exit();
   }
 
-  return fs
+  let elements = [];
+
+  fs
     .readdirSync(path)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
-    .map((i, index) => {
+    .forEach(i => {
       if (i.includes(DNA_DELIMITER)) {
         console.error(`layer name can not contain DNA_DELIMITER (${DNA_DELIMITER}), please fix: ${i}`);
         process.exit();
@@ -110,51 +113,69 @@ const getElements = (path, name) => {
         process.exit();
       }
 
-      if (!text.only && !(`${name}/${i}` in loadedImages)) {
+      if (text.only || loadedImages[`${name}/${i}`]) {
+        elements.push({
+          path: `${name}/${i}`,
+          weight: getRarityWeight(i),
+        });
+      } else if (!(`${name}/${i}` in loadedImages)) {
         const loadedImage = new Image();
+
+        loadedImage.onload = () => elements.push({
+          path: `${name}/${i}`,
+          weight: getRarityWeight(i),
+        });
+        loadedImage.onerror = (e) => console.error(`${e}: ${name}/${i}`);
+
         SetSource.call(loadedImage, `${layersDir}/${name}/${i}`);
 
         loadedImages[`${name}/${i}`] = loadedImage;
       }
-
-      return {
-        id: index,
-        path: `${name}/${i}`,
-        weight: getRarityWeight(i),
-      };
     });
+
+  return elements;
 };
 
 const layersSetup = (layersOrder) => {
   let layers = [];
   let index = 0;
   for (layerObj of layersOrder) {
+    if (layerObj.name in layerConfigs) {
+      if (layerConfigs[layerObj.name]) {
+        layers.push(layerConfigs[layerObj.name]);
+      }
+      continue
+    }
     const elements = getElements(`${layersDir}/${layerObj.name}/`, layerObj.name);
 
     if (!elements.length) {
+      layerConfigs[layerObj.name] = undefined;
       continue;
     }
 
-    layers.push({
+    const config = {
       id: index++,
       elements: elements,
       name:
-        layerObj.options && layerObj.options["displayName"] != undefined
-          ? layerObj.options && layerObj.options["displayName"]
-          : layerObj.name,
+        layerObj.options && layerObj.options["displayName"] || layerObj.name,
       blend:
-        layerObj.options && layerObj.options["blend"] != undefined
-          ? layerObj.options && layerObj.options["blend"]
-          : "source-over",
+        layerObj.options && layerObj.options["blend"] || "source-over",
       opacity:
-        layerObj.options && layerObj.options["opacity"] != undefined
-          ? layerObj.options && layerObj.options["opacity"]
-          : 1,
+        layerObj.options && layerObj.options["opacity"] || 1,
       bypassDNA:
-        layerObj.options && layerObj.options["bypassDNA"] !== undefined
-          ? layerObj.options && layerObj.options["bypassDNA"]
-          : false,
-    });
+        layerObj.options && layerObj.options["bypassDNA"] || false,
+      posX:
+        layerObj.options && layerObj.options["posX"] || 0,
+      posY:
+        layerObj.options && layerObj.options["posY"] || 0,
+      width:
+        layerObj.options && layerObj.options["width"] || format.width,
+      height:
+        layerObj.options && layerObj.options["height"] || format.height,
+    }
+
+    layers.push(config);
+    layerConfigs[layerObj.name] = config;
   }
   return layers;
 };
@@ -233,7 +254,6 @@ const addAttributes = (_element) => {
 const addText = (ctx, _sig, x, y, size) => {
   ctx.fillStyle = text.color;
   ctx.font = `${text.weight} ${size}pt ${text.family}`;
-console.log(_sig);
   ctx.textBaseline = text.baseline;
   ctx.textAlign = text.align;
   ctx.fillText(_sig, x, y);
@@ -262,21 +282,25 @@ const drawElements = (elements, _editionCount) => {
       drawBackground(ctx);
     }
 
-    elements.forEach((layer, _index) => {
+    elements.forEach((element, _index) => {
+      layer = layerConfigs[element.split('/').shift()];
+
+      ctx.globalAlpha = layer.opacity;
+      ctx.globalCompositeOperation = layer.blend;
       text.only
         ? addText(
             ctx,
-            cleanName(layer),
+            cleanName(element),
             text.xGap,
             text.yGap * (_index + 1),
             text.size
           )
         : ctx.drawImage(
-            loadedImages[layer],
-            0,
-            0,
-            format.width,
-            format.height
+            loadedImages[element],
+            layer.posX,
+            layer.posY,
+            layer.width,
+            layer.height
           );
 
       if (gif.export) {

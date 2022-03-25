@@ -1,0 +1,17 @@
+name: Feature Request
+description: Suggest a new idea for the project.
+labels: enhancement
+
+body:
+  - type: textarea
+    attributes:
+      label: Summary
+      description: Brief explanation of the feature.
+  - type: textarea
+    attributes:
+      label: Basic example
+      description: Include a basic code example. Omit this section if it's not applicable.
+  - type: textarea
+    attributes:
+      label: Motivation
+      description: Why are we doing this? What use cases does it support? What is the expected outcome?
