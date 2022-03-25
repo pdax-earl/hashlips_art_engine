@@ -8,7 +8,7 @@ body:
       label: Checklist
       description: Please go through this before opening an issue
       options:
-        - label: I have read [COMMON_ISSUES.md](https://github.com/HashLips/hashlips_art_engine/blob/COMMON_ISSUES.md)
+        - label: I have read [COMMON_ISSUES.md](https://github.com/HashLips/hashlips_art_engine/blob/main/COMMON_ISSUES.md)
           required: true
         - label: I have [searched existing issues](https://github.com/HashLips/hashlips_art_engine/issues?q=is%3Aissue)
           required: true
@@ -36,14 +36,9 @@ body:
     attributes:
       label: Actual result
       description: What happened?
-  - type: markdown
+  - type: textarea
     attributes:
-      value: ### Environment
-  - type: input
-    attributes:
-      description: OS Version
-      placeholder: "`uname -a` on unix, `systeminfo` on windows"
-  - type: input
-    attributes:
-      description: Node.js version
-      placeholder: "`node -v`"
+      label: Environment
+      value: |
+        OS Version (`uname -a` on unix, `systeminfo` on windows):
+        Node.js version (`node -v`):
