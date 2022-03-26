@@ -1,6 +1,7 @@
 const basePath = process.cwd();
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 const fs = require("fs");
+const { freemem } = require('os');
 const {
   Canvas,
   CanvasRenderingContext2d,
@@ -99,18 +100,17 @@ const getElements = (path, name) => {
   }
 
   let elements = [];
-
   fs
     .readdirSync(path)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
     .forEach(i => {
       if (i.includes(DNA_DELIMITER)) {
         console.error(`layer name can not contain DNA_DELIMITER (${DNA_DELIMITER}), please fix: ${i}`);
-        process.exit();
+        return;
       }
       if (i.includes("\n")) {
         console.error(`layer name can not contain newlines, please fix: ${i}`);
-        process.exit();
+        return;
       }
 
       if (text.only || loadedImages[`${name}/${i}`]) {
@@ -121,15 +121,20 @@ const getElements = (path, name) => {
       } else if (!(`${name}/${i}` in loadedImages)) {
         const loadedImage = new Image();
 
-        loadedImage.onload = () => elements.push({
-          path: `${name}/${i}`,
-          weight: getRarityWeight(i),
-        });
-        loadedImage.onerror = (e) => console.error(`${e}: ${name}/${i}`);
+        loadedImage.onload = () => {
+          elements.push({
+            path: `${name}/${i}`,
+            weight: getRarityWeight(i),
+          });
+          loadedImages[`${name}/${i}`] = loadedImage;
+        };
+
+        loadedImage.onerror = (e) => {
+          console.error(`${e}: ${name}/${i}`);
+          loadedImages[`${name}/${i}`] = undefined;
+        };
 
         SetSource.call(loadedImage, `${layersDir}/${name}/${i}`);
-
-        loadedImages[`${name}/${i}`] = loadedImage;
       }
     });
 
@@ -181,7 +186,7 @@ const layersSetup = (layersOrder) => {
 };
 
 const saveBuffer = (buffer, _editionCount) => {
-  fs.writeFile(
+  fs.writeFileSync(
     `${buildDir}/images/${_editionCount}.png`,
     buffer,
     () => {}
@@ -259,63 +264,53 @@ const addText = (ctx, _sig, x, y, size) => {
   ctx.fillText(_sig, x, y);
 };
 
-const drawElements = (elements, _editionCount) => {
-  return new Promise(resolve => {
-    const canvas = new Canvas(format.width, format.height);
-    const ctx = new CanvasRenderingContext2d(canvas, { alpha: !background.generate });
-    ctx.imageSmoothingEnabled = format.smoothing;
+const drawElements = (canvas, ctx, elements, _editionCount) => {
+  let hashlipsGiffer;
+  if (gif.export) {
+    hashlipsGiffer = new HashlipsGiffer(
+      canvas,
+      ctx,
+      `${buildDir}/gifs/${_editionCount}.gif`,
+      gif.repeat,
+      gif.quality,
+      gif.delay
+    );
+    hashlipsGiffer.start();
+  }
 
-    let hashlipsGiffer;
-    if (gif.export) {
-      hashlipsGiffer = new HashlipsGiffer(
-        canvas,
-        ctx,
-        `${buildDir}/gifs/${_editionCount}.gif`,
-        gif.repeat,
-        gif.quality,
-        gif.delay
-      );
-      hashlipsGiffer.start();
-    }
+  if (background.generate) {
+    drawBackground(ctx);
+  }
 
-    if (background.generate) {
-      drawBackground(ctx);
-    }
+  elements.forEach((element, _index) => {
+    layer = layerConfigs[element.split('/').shift()];
 
-    elements.forEach((element, _index) => {
-      layer = layerConfigs[element.split('/').shift()];
-
-      ctx.globalAlpha = layer.opacity;
-      ctx.globalCompositeOperation = layer.blend;
-      text.only
-        ? addText(
-            ctx,
-            cleanName(element),
-            text.xGap,
-            text.yGap * (_index + 1),
-            text.size
-          )
-        : ctx.drawImage(
-            loadedImages[element],
-            layer.posX,
-            layer.posY,
-            layer.width,
-            layer.height
-          );
-
-      if (gif.export) {
-        hashlipsGiffer.add();
-      }
-    });
+    ctx.globalAlpha = layer.opacity;
+    ctx.globalCompositeOperation = layer.blend;
+    text.only
+      ? addText(
+          ctx,
+          cleanName(element),
+          text.xGap,
+          text.yGap * (_index + 1),
+          text.size
+        )
+      : ctx.drawImage(
+          loadedImages[element],
+          layer.posX,
+          layer.posY,
+          layer.width,
+          layer.height
+        );
 
     if (gif.export) {
-      hashlipsGiffer.stop();
+      hashlipsGiffer.add();
     }
-
-    canvas.toBuffer((_, buffer) =>
-      resolve({buffer, _editionCount})
-    , "image/png", { resolution: format.resolution });
   });
+
+  if (gif.export) {
+    hashlipsGiffer.stop();
+  }
 };
 
 /**
@@ -471,6 +466,17 @@ const startCreating = () => {
     }
   }
 
+  lowMemory =
+    freemem() < format.width * format.height * (background.generate ? 3 : 4) * abstractedIndexes.length;
+
+  let globalCanvas, globalCtx;
+
+  if (lowMemory) {
+    globalCanvas = new Canvas(format.width, format.height);
+    globalCtx = new CanvasRenderingContext2d(globalCanvas, { alpha: !background.generate });
+    globalCtx.imageSmoothingEnabled = format.smoothing;
+  }
+
   if (shuffleLayerConfigurations) {
     abstractedIndexes = shuffle(abstractedIndexes);
   }
@@ -479,7 +485,7 @@ const startCreating = () => {
     ? console.log("Editions left to create: ", abstractedIndexes)
     : null;
 
-  abstractedIndexes.every((layers, abstractedIndex) => {
+   abstractedIndexes.every((layers, abstractedIndex) => {
     for (;; failedCount++) {
       newDna = createDna(layers);
 
@@ -505,9 +511,28 @@ const startCreating = () => {
       abstractedIndex = "0".repeat(format.padEdition - String(abstractedIndex).length) + abstractedIndex;
     }
 
-    drawElements(elements, abstractedIndex).then(buffer =>
-      saveBuffer(buffer.buffer, buffer._editionCount)
-    );
+    if (lowMemory) {
+      if (!background.generate) {
+        globalCtx.clearRect(0, 0, format.width, format.height);
+      }
+      drawElements(globalCanvas, globalCtx, elements, abstractedIndex);
+
+      saveBuffer(globalCanvas.toBuffer("image/png", { resolution: format.resolution }), abstractedIndex);
+    } else {
+      new Promise(resolve => {
+        const canvas = new Canvas(format.width, format.height);
+        const ctx = new CanvasRenderingContext2d(canvas, { alpha: !background.generate });
+        ctx.imageSmoothingEnabled = format.smoothing;
+
+        drawElements(canvas, ctx, elements, abstractedIndex);
+
+        canvas.toBuffer((_, buffer) =>
+          resolve(buffer)
+        , "image/png", { resolution: format.resolution })
+      }).then(buffer =>
+        saveBuffer(buffer, abstractedIndex)
+      );
+    }
 
     elements.forEach(layer => {
       const names = layer.split('/');
