@@ -534,11 +534,11 @@ const startCreating = () => {
       );
     }
 
-    elements.forEach(layer => {
+    elements.forEach((layer, i) => {
       const names = layer.split('/');
       addAttributes({
         layer: {
-          name: names[0],
+          name: layers[i].name,
           selectedElement: {
             name: cleanName(names[1]),
           },
