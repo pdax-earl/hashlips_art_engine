@@ -354,7 +354,7 @@ const removeQueryStrings = (_dna) => {
 };
 
 const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
-  const _hashedDNA = sha1(_dna);
+  const _hashedDNA = sha1(filterDNAOptions(_dna));
   return !_DnaList.has(_hashedDNA);
 };
 
