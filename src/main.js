@@ -94,14 +94,14 @@ const cleanName = (_str) => {
 };
 
 const getElements = (path, name) => {
-  if (!fs.existsSync(path)) {
-     console.error(`${path} doesn't exist, make sure your layers/ folder matches your src/config.js`);
+  if (!fs.existsSync(`${path}/${name}`)) {
+     console.error(`layers/${name} doesn't exist, make sure your layers/ folder matches your src/config.js`);
      process.exit();
   }
 
   let elements = [];
   fs
-    .readdirSync(path)
+    .readdirSync(`${path}/${name}`)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
     .forEach(i => {
       if (i.includes(DNA_DELIMITER)) {
@@ -115,6 +115,7 @@ const getElements = (path, name) => {
 
       if (text.only || loadedImages[`${name}/${i}`]) {
         elements.push({
+          name: cleanName(i),
           path: `${name}/${i}`,
           weight: getRarityWeight(i),
         });
@@ -123,6 +124,7 @@ const getElements = (path, name) => {
 
         loadedImage.onload = () => {
           elements.push({
+            name: cleanName(i),
             path: `${name}/${i}`,
             weight: getRarityWeight(i),
           });
@@ -151,7 +153,7 @@ const layersSetup = (layersOrder) => {
       }
       continue
     }
-    const elements = getElements(`${layersDir}/${layerObj.name}/`, layerObj.name);
+    const elements = getElements(layersDir, layerObj.name);
 
     if (!elements.length) {
       layerConfigs[layerObj.name] = undefined;

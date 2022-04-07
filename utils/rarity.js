@@ -20,7 +20,7 @@ layerConfigurations.forEach((config) => {
   layers.forEach((layer) => {
     // get elements for each layer
     let elementsForLayer = [];
-    let elements = getElements(`${layersDir}/${layer.name}/`);
+    let elements = getElements(layersDir, layer.name);
     elements.forEach((element) => {
       // just get name and weight for each element
       let rarityDataElement = {
@@ -30,10 +30,7 @@ layerConfigurations.forEach((config) => {
       };
       elementsForLayer.push(rarityDataElement);
     });
-    let layerName =
-      layer.options && layer.options["displayName"] != undefined
-        ? layer.options && layer.options["displayName"]
-        : layer.name;
+    let layerName = layer.options && layer.options["displayName"] || layer.name;
     // don't include duplicate layers
     if (!rarityData.includes(layer.name)) {
       // add elements for each layer to chart
