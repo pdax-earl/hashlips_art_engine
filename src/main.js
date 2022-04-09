@@ -104,6 +104,10 @@ const getElements = (path, name) => {
     .readdirSync(`${path}/${name}`)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
     .forEach(i => {
+      if (fs.statSync(`${path}/${name}/${i}`).isDirectory()) {
+        elements = elements.concat(getElements(path, `${name}/${i}`));
+        return;
+      }
       if (i.includes(DNA_DELIMITER)) {
         console.error(`layer name can not contain DNA_DELIMITER (${DNA_DELIMITER}), please fix: ${i}`);
         return;
