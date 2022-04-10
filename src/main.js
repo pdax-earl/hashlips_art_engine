@@ -49,7 +49,6 @@ let loadedImages = {};
 let layerConfigs = {};
 var metadataList = [];
 var attributesList = [];
-var dnaList = new Set();
 
 if (DNA_DELIMITER == undefined) {
   DNA_DELIMITER = "-";
@@ -94,18 +93,18 @@ const cleanName = (_str) => {
 };
 
 const getElements = (path, name) => {
-  if (!fs.existsSync(`${path}/${name}`)) {
+  if (!fs.existsSync(path)) {
      console.error(`layers/${name} doesn't exist, make sure your layers/ folder matches your src/config.js`);
      process.exit();
   }
 
   let elements = [];
   fs
-    .readdirSync(`${path}/${name}`)
+    .readdirSync(path)
     .filter((item) => !/(^|\/)\.[^\/\.]/g.test(item))
-    .forEach(i => {
-      if (fs.statSync(`${path}/${name}/${i}`).isDirectory()) {
-        elements = elements.concat(getElements(path, `${name}/${i}`));
+    .forEach((i, index) => {
+      if (fs.statSync(`${path}/${i}`).isDirectory()) {
+        elements = elements.concat(getElements(`${path}/${i}`, name));
         return;
       }
       if (i.includes(DNA_DELIMITER)) {
@@ -119,8 +118,10 @@ const getElements = (path, name) => {
 
       if (text.only || loadedImages[`${name}/${i}`]) {
         elements.push({
+          id: index,
           name: cleanName(i),
-          path: `${name}/${i}`,
+          layer: name,
+          path: i,
           weight: getRarityWeight(i),
         });
       } else if (!(`${name}/${i}` in loadedImages)) {
@@ -128,19 +129,22 @@ const getElements = (path, name) => {
 
         loadedImage.onload = () => {
           elements.push({
+            id: index,
             name: cleanName(i),
-            path: `${name}/${i}`,
+            layer: name,
+            path: i,
             weight: getRarityWeight(i),
+            loadedImage: loadedImage,
           });
-          loadedImages[`${name}/${i}`] = loadedImage;
+          loadedImages[`${path}/${i}`] = loadedImage;
         };
 
         loadedImage.onerror = (e) => {
-          console.error(`${e}: ${name}/${i}`);
-          loadedImages[`${name}/${i}`] = undefined;
+          console.error(`${e}: ${path}/${i}`);
+          loadedImages[`${path}/${i}`] = undefined;
         };
 
-        SetSource.call(loadedImage, `${layersDir}/${name}/${i}`);
+        SetSource.call(loadedImage, `${path}/${i}`);
       }
     });
 
@@ -157,7 +161,7 @@ const layersSetup = (layersOrder) => {
       }
       continue
     }
-    const elements = getElements(layersDir, layerObj.name);
+    const elements = getElements(`${layersDir}/${layerObj.name}`, layerObj.name);
 
     if (!elements.length) {
       layerConfigs[layerObj.name] = undefined;
@@ -217,7 +221,7 @@ const addMetadata = (_dna, _edition) => {
     name: `${namePrefix} #${_edition}`,
     description: description,
     image: `${baseUri}/${_edition}.png`,
-    dna: sha1(_dna),
+    dna: sha1(_dna.map(dna => dna.path).join(DNA_DELIMITER)),
     edition: _edition,
     date: dateTime,
     ...extraMetadata,
@@ -289,20 +293,20 @@ const drawElements = (canvas, ctx, elements, _editionCount) => {
   }
 
   elements.forEach((element, _index) => {
-    layer = layerConfigs[element.split('/').shift()];
+    layer = element.layer;
 
     ctx.globalAlpha = layer.opacity;
     ctx.globalCompositeOperation = layer.blend;
     text.only
       ? addText(
           ctx,
-          cleanName(element),
+          cleanName(element.path.split("/").pop()),
           text.xGap,
           text.yGap * (_index + 1),
           text.size
         )
       : ctx.drawImage(
-          loadedImages[element],
+          element.loadedImage,
           layer.posX,
           layer.posY,
           layer.width,
@@ -320,33 +324,6 @@ const drawElements = (canvas, ctx, elements, _editionCount) => {
 };
 
 /**
- * In some cases a DNA string may contain optional query parameters for options
- * such as bypassing the DNA isUnique check, this function filters out those
- * items without modifying the stored DNA.
- *
- * @param {String} _dna New DNA string
- * @returns new DNA string with any items that should be filtered, removed.
- */
-const filterDNAOptions = (_dna) => {
-  const dnaItems = _dna.split(DNA_DELIMITER);
-  const filteredDNA = dnaItems.filter((element) => {
-    const query = /(\?.*$)/;
-    const querystring = query.exec(element);
-    if (!querystring) {
-      return true;
-    }
-    const options = querystring[1].split("&").reduce((r, setting) => {
-      const keyPairs = setting.split("=");
-      return { ...r, [keyPairs[0]]: keyPairs[1] };
-    }, []);
-
-    return options.bypassDNA;
-  });
-
-  return filteredDNA.join(DNA_DELIMITER);
-};
-
-/**
  * Cleaning function for DNA strings. When DNA strings include an option, it
  * is added to the filename with a ?setting=value query string. It needs to be
  * removed to properly access the file name before Drawing.
@@ -359,8 +336,8 @@ const removeQueryStrings = (_dna) => {
   return _dna.replace(query, "");
 };
 
-const isDnaUnique = (_DnaList = new Set(), _dna = "") => {
-  const _hashedDNA = sha1(filterDNAOptions(_dna));
+const isDnaUnique = (_DnaList = new Set(), _dna = {}) => {
+  const _hashedDNA = sha1(_dna.map(dna => dna.path).join(DNA_DELIMITER));
   return !_DnaList.has(_hashedDNA);
 };
 
@@ -375,29 +352,29 @@ const createDna = (_layers) => {
     // if totalWeight is 0, this stops it from erroring
     if (totalWeight == 0) {
       do {
-        random = Math.floor(Math.random() * layer.elements.length);
-      } while (!layer.elements[random])
-      return randNum.push(
-        `${layer.elements[random].path}${
-          layer.bypassDNA ? "?bypassDNA=true" : ""
-        }`
-      );
-    }
-    // number between 0 - totalWeight
-    random = Math.floor(Math.random() * totalWeight);
-    for (var i = 0; i < layer.elements.length; i++) {
-      // subtract the current weight from the random weight until we reach a sub zero value.
-      random -= layer.elements[i].weight;
-      if (random < 0) {
-        return randNum.push(
-          `${layer.elements[i].path}${
-            layer.bypassDNA ? "?bypassDNA=true" : ""
-          }`
-        );
+        i = Math.floor(Math.random() * layer.elements.length);
+      } while (!layer.elements[i])
+    } else {
+      // number between 0 - totalWeight
+      random = Math.floor(Math.random() * totalWeight);
+      for (var i = 0; i < layer.elements.length; i++) {
+        // subtract the current weight from the random weight until we reach a sub zero value.
+        random -= layer.elements[i].weight;
+        if (random < 0) {
+          break
+        }
       }
     }
+    return randNum.push({
+      path: `${layer.elements[i].id}:${layer.elements[i].path}${
+        layer.bypassDNA ? "?bypassDNA=true" : ""
+      }`,
+      layer: layerConfigs[layer.elements[i].layer],
+      loadedImage: layer.elements[i].loadedImage,
+      trait: layer.elements[i].path,
+    });
   });
-  return randNum.join(DNA_DELIMITER);
+  return randNum;
 };
 
 const writeMetaData = (_data) => {
@@ -508,8 +485,6 @@ const startCreating = () => {
       }
     }
 
-    const elements = newDna.replace(/\?bypassDNA=true/g, '').split(DNA_DELIMITER);
-
     if (format.hexEdition) {
       abstractedIndex = abstractedIndex.toString(16);
     }
@@ -521,7 +496,7 @@ const startCreating = () => {
       if (!background.generate) {
         globalCtx.clearRect(0, 0, format.width, format.height);
       }
-      drawElements(globalCanvas, globalCtx, elements, abstractedIndex);
+      drawElements(globalCanvas, globalCtx, newDna, abstractedIndex);
 
       saveBuffer(globalCanvas.toBuffer("image/png", { resolution: format.resolution }), abstractedIndex);
     } else {
@@ -530,7 +505,7 @@ const startCreating = () => {
         const ctx = new CanvasRenderingContext2d(canvas, { alpha: !background.generate });
         ctx.imageSmoothingEnabled = format.smoothing;
 
-        drawElements(canvas, ctx, elements, abstractedIndex);
+        drawElements(canvas, ctx, newDna, abstractedIndex);
 
         canvas.toBuffer((_, buffer) =>
           resolve(buffer)
@@ -540,13 +515,12 @@ const startCreating = () => {
       );
     }
 
-    elements.forEach((layer, i) => {
-      const names = layer.split('/');
+    newDna.forEach((layer, i) => {
       addAttributes({
         layer: {
           name: layers[i].name,
           selectedElement: {
-            name: cleanName(names[1]),
+            name: cleanName(layer.trait),
           },
         },
       });
@@ -556,11 +530,10 @@ const startCreating = () => {
     saveMetaDataSingleFile(abstractedIndex);
     console.log(
       `Created edition: ${abstractedIndex}, with DNA: ${sha1(
-        newDna
+        newDna.map(dna => dna.path).join(DNA_DELIMITER)
       )}`
     );
-    dnaList.add(filterDNAOptions(newDna));
-    dnaHashList.add(sha1(filterDNAOptions(newDna)));
+    dnaHashList.add(sha1(newDna.map(dna => dna.path).join(DNA_DELIMITER)));
 
     return true;
   });
