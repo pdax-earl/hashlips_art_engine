@@ -215,7 +215,7 @@ const drawBackground = (ctx) => {
   ctx.fillRect(0, 0, format.width, format.height);
 };
 
-const addMetadata = (_dna, _edition) => {
+const addMetadata = (_dna, _edition, _extraMetadata) => {
   let dateTime = Date.now();
   let tempMetadata = {
     name: `${namePrefix} #${_edition}`,
@@ -225,6 +225,7 @@ const addMetadata = (_dna, _edition) => {
     edition: _edition,
     date: dateTime,
     ...extraMetadata,
+    ..._extraMetadata,
     attributes: attributesList,
     compiler: "HashLips Art Engine",
   };
@@ -443,14 +444,14 @@ const startCreating = () => {
       if (existingEditions.has(i)) {
         console.log("Edition exists!");
       } else {
-        abstractedIndexes[i] = layers;
+        abstractedIndexes[i] = [layers, layerconfiguration.extraMetadata];
       }
       offset++;
     }
   }
 
   lowMemory =
-    freemem() < format.width * format.height * (background.generate ? 3 : 4) * abstractedIndexes.length;
+    freemem() < format.width * format.height * (background.generate ? 3 : 4) * abstractedIndexes.filter(val => val != undefined).length;
 
   let globalCanvas, globalCtx;
 
@@ -470,7 +471,7 @@ const startCreating = () => {
 
    abstractedIndexes.every((layers, abstractedIndex) => {
     for (;; failedCount++) {
-      newDna = createDna(layers);
+      newDna = createDna(layers[0]);
 
       if (isDnaUnique(dnaHashList, newDna)) {
         break;
@@ -479,7 +480,7 @@ const startCreating = () => {
 
       if (failedCount >= uniqueDnaTorrance) {
         console.log(
-          `You need more layers or elements to grow your edition to ${layerconfiguration.growEditionSizeTo} artworks!`
+          `You need more layers or elements to grow your edition to ${abstractedIndexes.filter(val => val != undefined).length} artworks!`
         );
         return false;
       }
@@ -518,7 +519,7 @@ const startCreating = () => {
     newDna.forEach((layer, i) => {
       addAttributes({
         layer: {
-          name: layers[i].name,
+          name: layers[0][i].name,
           selectedElement: {
             name: cleanName(layer.trait),
           },
@@ -526,7 +527,7 @@ const startCreating = () => {
       });
     });
 
-    addMetadata(newDna, abstractedIndex);
+    addMetadata(newDna, abstractedIndex, layers[1]);
     saveMetaDataSingleFile(abstractedIndex);
     console.log(
       `Created edition: ${abstractedIndex}, with DNA: ${sha1(
