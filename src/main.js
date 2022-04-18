@@ -1,6 +1,21 @@
 const basePath = process.cwd();
-const { NETWORK } = require(`${basePath}/constants/network.js`);
 const fs = require("fs");
+
+if (!fs.existsSync(`${basePath}/node_modules/sha1`)) {
+  console.error("You need to run npm install");
+  process.exit();
+}
+
+let config;
+
+try {
+  config = require(`${basePath}/src/config.js`)
+} catch (error) {
+  console.error(`Syntax error: ${error.message} in src/config.js`);
+  process.exit();
+}
+
+const { NETWORK } = require(`${basePath}/constants/network.js`);
 const { freemem } = require('os');
 const {
   Canvas,
@@ -16,15 +31,6 @@ CanvasRenderingContext2dInit(DOMMatrix, parseFont);
 const sha1 = require(`${basePath}/node_modules/sha1`);
 const buildDir = `${basePath}/build`;
 const layersDir = `${basePath}/layers`;
-
-let config;
-
-try {
-  config = require(`${basePath}/src/config.js`)
-} catch (error) {
-  console.error(`Syntax error: ${error.message} in src/config.js`);
-  process.exit();
-}
 
 let {
   baseUri,
