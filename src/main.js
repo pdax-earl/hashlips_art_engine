@@ -437,7 +437,7 @@ const startCreating = () => {
   for (layerconfiguration of layerConfigurations) {
     const layers = layersSetup(layerconfiguration.layersOrder);
 
-    if (network != NETWORK.sol && layerconfiguration.startEditionFrom) {
+    if (network != NETWORK.sol && layerconfiguration.startEditionFrom != undefined) {
       offset = layerconfiguration.startEditionFrom;
     }
     const startFrom = offset;
