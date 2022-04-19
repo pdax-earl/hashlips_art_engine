@@ -435,22 +435,22 @@ const startCreating = () => {
   let offset = network == NETWORK.sol ? 0 : 1;
 
   for (layerconfiguration of layerConfigurations) {
-    const layers = layersSetup(layerconfiguration.layersOrder);
+    const layers = layersSetup(layerconfiguration[Object.keys(layerconfiguration).find(k => k.toLowerCase() == "layersorder")]);
 
-    if (network != NETWORK.sol && layerconfiguration.startEditionFrom != undefined) {
-      offset = layerconfiguration.startEditionFrom;
+    if (network != NETWORK.sol && layerconfiguration[Object.keys(layerconfiguration).find(k => k.toLowerCase() == "starteditionfrom")] != undefined) {
+      offset = layerconfiguration[Object.keys(layerconfiguration).find(k => k.toLowerCase() == "starteditionfrom")];
     }
     const startFrom = offset;
 
     for (
       let i = offset;
-      i < layerconfiguration.growEditionSizeTo + startFrom;
+      i < layerconfiguration[Object.keys(layerconfiguration).find(k => k.toLowerCase() == "groweditionsizeto")] + startFrom;
       i++
     ) {
       if (existingEditions.has(i)) {
         console.log("Edition exists!");
       } else {
-        abstractedIndexes[i] = [layers, layerconfiguration.extraMetadata];
+        abstractedIndexes[i] = [layers, layerconfiguration[Object.keys(layerconfiguration).find(k => k.toLowerCase() == "extrametadata")]];
       }
       offset++;
     }
