@@ -32,7 +32,7 @@ data.forEach((item) => {
   if (network == NETWORK.sol) {
     item.name = `${namePrefix} #${edition}`;
     item.description = description;
-    item.creators = solanaMetadata.creators;
+    item.properties.creators = solanaMetadata.creators;
   } else {
     item.name = `${namePrefix} #${edition}`;
     item.description = description;
