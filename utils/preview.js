@@ -1,3 +1,5 @@
+#!/usr/bin/node
+
 const basePath = process.cwd();
 const fs = require("fs");
 const { createCanvas, loadImage } = require("canvas");

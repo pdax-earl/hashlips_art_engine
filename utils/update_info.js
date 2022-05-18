@@ -1,3 +1,5 @@
+#!/usr/bin/node
+
 const basePath = process.cwd();
 const { NETWORK } = require(`${basePath}/constants/network.js`);
 const fs = require("fs");
