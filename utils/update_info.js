@@ -13,16 +13,20 @@ const {
 } = require(`${basePath}/src/config.js`);
 
 // read json data
-let data;
+let data = [];
 
 if (fs.existsSync(`${basePath}/build/json/_metadata.json`)) {
   let rawdata = fs.readFileSync(`${basePath}/build/json/_metadata.json`);
   data = JSON.parse(rawdata);
 } else if (fs.existsSync(`${basePath}/build/json`)) {
-  data = fs.readdirSync(`${basePath}/build/json`)
-    .map(file => {
-      rawdata = fs.readFileSync(`${basePath}/build/json/${file}`);
-      return JSON.parse(rawdata);
+  fs.readdirSync(`${basePath}/build/json`)
+    .forEach(file => {
+      try {
+        rawdata = fs.readFileSync(`${basePath}/build/json/${file}`);
+        data.push(JSON.parse(rawdata));
+      } catch {
+        console.error(`Syntax error in build/json/${file}`);
+      }
     });
 } else {
   console.error("build/json doesn't exist");
