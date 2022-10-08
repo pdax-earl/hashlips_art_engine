@@ -165,18 +165,18 @@ const getElements = (path, name) => {
 const layersSetup = (layersOrder) => {
   let layers = [];
   let index = 0;
-  for (layerObj of layersOrder) {
+  layersOrder.forEach(layerObj => {
     if (layerObj.name in layerConfigs) {
       if (layerConfigs[layerObj.name]) {
         layers.push(layerConfigs[layerObj.name]);
       }
-      continue
+      return
     }
     const elements = getElements(`${layersDir}/${layerObj.name}`, layerObj.name);
 
     if (!elements.length) {
       layerConfigs[layerObj.name] = undefined;
-      continue;
+      return;
     }
 
     const config = {
@@ -202,7 +202,7 @@ const layersSetup = (layersOrder) => {
 
     layers.push(config);
     layerConfigs[layerObj.name] = config;
-  }
+  });
   return layers;
 };
 
