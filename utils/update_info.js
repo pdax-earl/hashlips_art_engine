@@ -12,26 +12,11 @@ const {
   solanaMetadata,
 } = require(`${basePath}/src/config.js`);
 
-// read json data
-let data = [];
+const {
+  getOrigData,
+} = require(`${basePath}/utils/common_utils.js`);
 
-if (fs.existsSync(`${basePath}/build/json/_metadata.json`)) {
-  let rawdata = fs.readFileSync(`${basePath}/build/json/_metadata.json`);
-  data = JSON.parse(rawdata);
-} else if (fs.existsSync(`${basePath}/build/json`)) {
-  fs.readdirSync(`${basePath}/build/json`)
-    .forEach(file => {
-      try {
-        rawdata = fs.readFileSync(`${basePath}/build/json/${file}`);
-        data.push(JSON.parse(rawdata));
-      } catch {
-        console.error(`Syntax error in build/json/${file}`);
-      }
-    });
-} else {
-  console.error("build/json doesn't exist");
-  process.exit();
-}
+let data = getOrigData();
 
 data.forEach((item) => {
   edition = item.edition ?? item.custom_fields.edition;

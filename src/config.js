@@ -11,6 +11,10 @@ const namePrefix = "Your Collection";
 const description = "Remember to replace this description";
 const baseUri = "ipfs://NewUriToReplace";
 
+// Run Update_info to randomize collection
+const shuffleCollection = true;
+const shuffleDir = `${basePath}/build/shuffled`;
+
 const solanaMetadata = {
   symbol: "YC",
   seller_fee_basis_points: 1000, // Define how much % you want from secondary market sales 1000 = 10%
@@ -128,4 +132,6 @@ module.exports = {
   gif,
   preview_gif,
   DNA_DELIMITER,
+  shuffleCollection,
+  shuffleDir,
 };

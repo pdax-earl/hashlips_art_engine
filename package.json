@@ -13,7 +13,9 @@
   },
   "scripts": {
     "build": "node index.js",
+    "re-build": "rm -r ./build && npm run build",
     "generate": "node index.js",
+    "shuffle": "node utils/shuffle.js",
     "rarity": "node utils/rarity.js",
     "preview": "node utils/preview.js",
     "pixelate": "node utils/pixelate.js",
