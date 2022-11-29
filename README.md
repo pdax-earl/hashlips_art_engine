@@ -292,6 +292,16 @@ That's it, you're done.
 
 ## Utils
 
+### Shuffle generated NFTs
+
+Shuffle generated NFTs by running
+
+```sh
+npm run shuffle
+```
+
+The outputs will be created in `build/shuffled`. This will update the NFT name and edition, as well as the description.
+
 ### Updating baseUri for IPFS and description
 
 You might possibly want to update the baseUri and description after you have ran your collection. To update the baseUri and description simply run:
