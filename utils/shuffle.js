@@ -5,7 +5,7 @@ const fs = require("fs");
 
 const {
   getOrigData,
-} = require(`${basePath}/utils/common_utils.js`);
+} = require(`${basePath}/utils/common.js`);
 
 const {
   baseUri,
