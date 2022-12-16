@@ -14,7 +14,7 @@ const {
 
 const {
   getOrigData,
-} = require(`${basePath}/utils/common_utils.js`);
+} = require(`${basePath}/utils/common.js`);
 
 let data = getOrigData();
 
